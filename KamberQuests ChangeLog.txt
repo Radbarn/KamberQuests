@@ -1,3 +1,11 @@
+V1.2.0
+	Addon now recognizes if you've manually tracked the quest (i.e. shift clicked in your quest log) and won't remove that quest from your quest log.
+	A "reset" button has been added to the options panel so that you can remove all manual tracking that you've put in place and return to fully automatic.
+	Added buttons for "all on", "all off" and "return to defaults" to the options panel
+	Added a version check to the SavedVariables to notify player of an update
+	Added tracking options for pvp, dungeon, and raid quests so that these can be auto-tracked regardless of current zone
+	
+
 V1.1.0
 	Rewrote code to be simpler (this will cause your settings to be reset when migrating to this version)
 	Added tracking option for "all completed quests" that are ready to turn in

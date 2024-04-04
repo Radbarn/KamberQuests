@@ -1,7 +1,21 @@
-local KQversion = "KamberQuests v1.1.0"
+local KQversion = "KamberQuests v1.2.0"
 
 -- Initialize or load saved variables
-KamberQuestsDB = KamberQuestsDB or {daily = true, weekly = true, zone = true, completed = true}
+KamberQuestsDB = KamberQuestsDB or nil
+
+-- Function to return settings to defaults
+local function SetAllDefaults()
+    
+    KamberQuestsDB = {daily = true, weekly = true, zone = true, completed = true, pvp = false, dungeon = false, raid = false, version = KQversion}
+   
+end
+
+if KamberQuestsDB == nil then
+    SetAllDefaults()
+end
+
+
+local InitializeOptions -- placeholder
 
 local function IsQuestObjectivesComplete(questID)
     local objectives = C_QuestLog.GetQuestObjectives(questID)
@@ -17,6 +31,12 @@ end
 
 local function UpdateQuestWatch()
     local numQuests = C_QuestLog.GetNumQuestLogEntries()
+    
+    --Notify the user than there has been an update!
+    if KamberQuestsDB.version ~= KQversion then
+        print("You have updated to the new |cFF4169E1" .. KQversion .. "|r")
+        KamberQuestsDB.version = KQversion
+    end
 
 	--back out if the player has no quests in log
 	if numQuests == 0 or numQuests == nil then
@@ -31,21 +51,44 @@ local function UpdateQuestWatch()
         if not info.isHeader then
             local questID = info.questID
             local questZone = C_TaskQuest.GetQuestZoneID(questID)
-
+            local tagInfo = C_QuestLog.GetQuestTagInfo(questID)
+            local tagID = tagInfo and tagInfo.tagID or nil
+            
             -- Check if the quest fits the criteria to be tracked. Checks both the player's preference for tracking and whether the criteria is met.
             local isDaily = KamberQuestsDB.daily and (info.frequency == Enum.QuestFrequency.Daily)
 			local isWeekly = KamberQuestsDB.weekly and (info.frequency == Enum.QuestFrequency.Weekly)
             local isComplete = KamberQuestsDB.completed and (C_QuestLog.IsComplete(questID) or IsQuestObjectivesComplete(questID)) --(C_QuestLog.IsComplete(questID) or C_QuestLog.IsQuestFlaggedCompleted(questID) or IsQuestObjectivesComplete(questID))
 			local isInZone = KamberQuestsDB.zone and (questZone and questZone == currentMapID)
-
+            local isPvP = tagID and KamberQuestsDB.pvp and (tagID == Enum.QuestTag.Pvp)
+            local isRaid = tagID and KamberQuestsDB.raid and (tagID == Enum.QuestTag.Raid)
+            local isDungeon = tagID and KamberQuestsDB.dungeon and (tagID == Enum.QuestTag.Dungeon)
+                        
             -- If any of the criteria and settings are met then track it, otherwise remove tracking
-            if isComplete or isDaily or isWeekly or isInZone then
+            if isComplete or isDaily or isWeekly or isInZone or isAlwaysTracked or isPvP or isRaid or isDungeon then
                 C_QuestLog.AddQuestWatch(questID, Enum.QuestWatchType.Automatic)
             else
-                C_QuestLog.RemoveQuestWatch(questID)
+                -- only remove the tracking if the quest was auto-tracked.  if the user manually tracked this quest then it needs to stay tracked forever.
+                if C_QuestLog.GetQuestWatchType(questID) == Enum.QuestWatchType.Automatic then
+                    C_QuestLog.RemoveQuestWatch(questID)
+                end
             end
         end
     end
+end
+
+-- Function to reset quest tracking
+local function ResetQuestTracking()
+    local numQuests = C_QuestLog.GetNumQuestLogEntries()
+
+    for i = 1, numQuests do
+        local info = C_QuestLog.GetInfo(i)
+        if not info.isHeader and C_QuestLog.GetQuestWatchType(info.questID) then
+            C_QuestLog.RemoveQuestWatch(info.questID)
+        end
+    end
+
+    -- Reapply tracking based on addon criteria
+    UpdateQuestWatch()
 end
 
 -- Slash command function
@@ -54,11 +97,14 @@ local function SlashCmdHandler(msg)
 	local command = string.lower(msg)
     if command == "status" then
         -- Output current settings to chat
-        local settings = string.format(outputPrefix .. "Current Settings:\nDaily Tracking: %s\nWeekly Tracking: %s\nZone Tracking: %s\nCompleted Tracking: %s",
+        local settings = string.format(outputPrefix .. "Current Settings:\nDaily Tracking: %s\nWeekly Tracking: %s\nZone Tracking: %s\nCompleted Tracking: %s\nRaid Tracking: %s\nDungeon Tracking: %s\nPvP Tracking: %s",
                                        KamberQuestsDB.daily and "ON" or "OFF",
                                        KamberQuestsDB.weekly and "ON" or "OFF",
                                        KamberQuestsDB.zone and "ON" or "OFF",
-                                       KamberQuestsDB.completed and "ON" or "OFF")
+                                       KamberQuestsDB.completed and "ON" or "OFF",
+                                       KamberQuestsDB.raid and "ON" or "OFF",
+                                       KamberQuestsDB.dungeon and "ON" or "OFF",
+                                       KamberQuestsDB.pvp and "ON" or "OFF")
         print(settings)
     elseif command == "daily" then
         KamberQuestsDB.daily = not KamberQuestsDB.daily
@@ -72,6 +118,18 @@ local function SlashCmdHandler(msg)
     elseif command == "completed" then
         KamberQuestsDB.completed = not KamberQuestsDB.completed
         print(outputPrefix .. "Completed Tracking: " .. (KamberQuestsDB.completed and "ON" or "OFF"))
+    elseif command == "pvp" then
+        KamberQuestsDB.completed = not KamberQuestsDB.pvp
+        print(outputPrefix .. "Completed Tracking: " .. (KamberQuestsDB.pvp and "ON" or "OFF"))
+    elseif command == "raid" then
+        KamberQuestsDB.completed = not KamberQuestsDB.raid
+        print(outputPrefix .. "Completed Tracking: " .. (KamberQuestsDB.raid and "ON" or "OFF"))
+    elseif command == "dungeon" then
+        KamberQuestsDB.completed = not KamberQuestsDB.dungeon
+        print(outputPrefix .. "Completed Tracking: " .. (KamberQuestsDB.dungeon and "ON" or "OFF"))
+    elseif command == "reset" then
+        print(outputPrefix .. "reseting all manually tracked quests.")
+        ResetQuestTracking()
     else
 		-- Open the Interface Options window to the KamberQuests panel
         InterfaceOptionsFrame_OpenToCategory(KamberQuestsPanel)
@@ -111,6 +169,22 @@ local function CreateCheckbox(label, description, variable)
     return checkbox
 end
 
+-- Function to toggle all settings on or off
+local function SetAllTracking(onoff)
+    KamberQuestsDB.daily = onoff
+    KamberQuestsDB.weekly = onoff
+    KamberQuestsDB.zone = onoff
+    KamberQuestsDB.completed = onoff
+    KamberQuestsDB.pvp = onoff
+    KamberQuestsDB.raid = onoff
+    KamberQuestsDB.dungeon = onoff
+    
+    UpdateQuestWatch()
+    InitializeOptions()
+    
+end
+
+
 -- Create a large title label for the header
 local titleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 titleLabel:SetPoint("TOPLEFT", 16, -16)
@@ -120,11 +194,43 @@ titleLabel:SetText(KQversion)
 local descriptionText = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 descriptionText:SetPoint("TOPLEFT", titleLabel, "BOTTOMLEFT", 0, -8)
 descriptionText:SetJustifyH("LEFT")
-descriptionText:SetText("Select the types of quests you want to automatically track.\nAlternatively you can use /kq status, /kq config, /kq daily, /kq weekly, /kq zone, or /kq completed.")
+descriptionText:SetText("Select the types of quests you want to automatically track.\nPress Reset Tracking to clear any manually tracked quests in your log.\nAlternatively you can use:\n     /kq status, /kq config, /kq reset, /kq daily, /kq weekly, /kq zone, /kq completed, /kq raid, /kq dungeon, /kq pvp")
+
+-- Create the reset tracking button
+local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+resetButton:SetSize(120, 25)  -- Adjust the size as needed
+resetButton:SetPoint("TOPLEFT", descriptionText, "BOTTOMLEFT", 0, -8)  -- Adjust the position as needed
+resetButton:SetText("Reset Tracking")
+resetButton:SetScript("OnClick", ResetQuestTracking)
+
+-- Create the all_on tracking button
+local allonButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+allonButton:SetSize(120, 25)  -- Adjust the size as needed
+allonButton:SetPoint("TOPLEFT", resetButton, "TOPRIGHT", 10, 0)  -- Adjust the position as needed
+allonButton:SetText("Set All On")
+allonButton:SetScript("OnClick", function() SetAllTracking(true) end)
+
+-- Create the all_off tracking button
+local alloffButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+alloffButton:SetSize(120, 25)  -- Adjust the size as needed
+alloffButton:SetPoint("TOPLEFT", allonButton, "TOPRIGHT", 10, 0)  -- Adjust the position as needed
+alloffButton:SetText("Set All Off")
+alloffButton:SetScript("OnClick", function() SetAllTracking(false) end)
+
+-- Create the default tracking button
+local defaultButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+defaultButton:SetSize(120, 25)  -- Adjust the size as needed
+defaultButton:SetPoint("TOPLEFT", alloffButton, "TOPRIGHT", 10, 0)  -- Adjust the position as needed
+defaultButton:SetText("Set Defaults")
+defaultButton:SetScript("OnClick", function()
+    SetAllDefaults()
+    UpdateQuestWatch()
+    InitializeOptions()
+end)
 
 -- Create checkboxes for each setting
 local dailyCheckbox = CreateCheckbox("Track Daily Quests", "Toggle tracking of daily quests.", "daily")
-dailyCheckbox:SetPoint("TOPLEFT", descriptionText, "BOTTOMLEFT", 0, -8)
+dailyCheckbox:SetPoint("TOPLEFT", resetButton, "BOTTOMLEFT", 0, -8)
 
 local weeklyCheckbox = CreateCheckbox("Track Weekly Quests", "Toggle tracking of weekly quests.", "weekly")
 weeklyCheckbox:SetPoint("TOPLEFT", dailyCheckbox, "BOTTOMLEFT")
@@ -135,11 +241,24 @@ zoneCheckbox:SetPoint("TOPLEFT", weeklyCheckbox, "BOTTOMLEFT")
 local completedCheckbox = CreateCheckbox("Track Completed Quests", "Toggle tracking of quests with all objectives completed.", "completed")
 completedCheckbox:SetPoint("TOPLEFT", zoneCheckbox, "BOTTOMLEFT")
 
+local raidCheckbox = CreateCheckbox("Track Raid Quests", "Toggle tracking of Raid quests.", "raid")
+raidCheckbox:SetPoint("TOPLEFT", completedCheckbox, "BOTTOMLEFT")
+
+local dungeonCheckbox = CreateCheckbox("Track Dungeon Quests", "Toggle tracking of Dungeon quests.", "dungeon")
+dungeonCheckbox:SetPoint("TOPLEFT", raidCheckbox, "BOTTOMLEFT")
+
+local pvpCheckbox = CreateCheckbox("Track PvP Quests", "Toggle tracking of PvP quests.", "pvp")
+pvpCheckbox:SetPoint("TOPLEFT", dungeonCheckbox, "BOTTOMLEFT")
+
 -- Initialize checkboxes with current settings
-local function InitializeOptions()
+InitializeOptions = function()
     dailyCheckbox:SetChecked(KamberQuestsDB.daily)
     weeklyCheckbox:SetChecked(KamberQuestsDB.weekly)
     zoneCheckbox:SetChecked(KamberQuestsDB.zone)
     completedCheckbox:SetChecked(KamberQuestsDB.completed)
+    raidCheckbox:SetChecked(KamberQuestsDB.raid)
+    dungeonCheckbox:SetChecked(KamberQuestsDB.dungeon)
+    pvpCheckbox:SetChecked(KamberQuestsDB.pvp)
 end
+
 panel:SetScript("OnShow", InitializeOptions)
