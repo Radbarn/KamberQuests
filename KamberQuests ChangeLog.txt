@@ -1,0 +1,13 @@
+V1.0.3
+	Fixed LUA errors when there are no quests in the current zone
+	Fixed LUA errors when unable to check the current map
+	
+V1.0.2
+	Fixed the settings not saving between sessions/reloads
+	Fixed addon load message when "active" is off
+
+V1.0.1
+	Adjust event handler to not start too early during log-in
+
+V1.0.0
+	Initial Release

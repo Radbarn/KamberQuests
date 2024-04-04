@@ -1,0 +1,10 @@
+## Interface: 100205
+## Title: KamberQuests
+## Author: Radbarn
+## Notes: Automated quest tracking based on daily/weekly/zones
+## Version: KQ1.0.3
+## SavedVariables: KQ_setting_active, KQ_setting_debug, KQ_setting_watchweekly, KQ_setting_watchdaily
+
+
+
+KamberQuests.lua
