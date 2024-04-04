@@ -1,3 +1,8 @@
+V1.2.5
+	Fixed some typo errors that caused the pvp/raid/dungeon settings to not work
+	Changed how the current map/zone is checked; will now review parent and subzones to try and be more accurate with player location vs quest zone
+	Some optimizations to reduce resource requirements during updates
+
 V1.2.0
 	Addon now recognizes if you've manually tracked the quest (i.e. shift clicked in your quest log) and won't remove that quest from your quest log.
 	A "reset" button has been added to the options panel so that you can remove all manual tracking that you've put in place and return to fully automatic.

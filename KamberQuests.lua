@@ -1,7 +1,4 @@
-local KQversion = "KamberQuests v1.2.0"
-
--- Initialize or load saved variables
-KamberQuestsDB = KamberQuestsDB or nil
+local KQversion = "KamberQuests v1.2.5"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -19,7 +16,7 @@ local InitializeOptions -- placeholder
 
 local function IsQuestObjectivesComplete(questID)
     local objectives = C_QuestLog.GetQuestObjectives(questID)
-    if not objectives then return false end
+        if not objectives or type(objectives) ~= 'table' then return false end
 
     for _, objective in ipairs(objectives) do
         if not objective.finished then
@@ -27,6 +24,20 @@ local function IsQuestObjectivesComplete(questID)
         end
     end
     return true
+end
+
+local function IsQuestInCurrentZone(questID)
+    local currentMapID = C_Map.GetBestMapForUnit("player")
+    if not currentMapID then return false end
+
+    local questsOnMap = C_QuestLog.GetQuestsOnMap(currentMapID)
+    for _, questInfo in ipairs(questsOnMap) do
+        if questInfo.questID == questID then
+            return true
+        end
+    end
+
+    return false
 end
 
 local function UpdateQuestWatch()
@@ -43,22 +54,21 @@ local function UpdateQuestWatch()
 		return false
 	end
 
-    local currentMapID = C_Map.GetBestMapForUnit("player")
-
-	
 	for i = 1, numQuests do
         local info = C_QuestLog.GetInfo(i)
         if not info.isHeader then
             local questID = info.questID
-            local questZone = C_TaskQuest.GetQuestZoneID(questID)
             local tagInfo = C_QuestLog.GetQuestTagInfo(questID)
-            local tagID = tagInfo and tagInfo.tagID or nil
+            local tagID = nil
+            if tagInfo then  -- Checks that tagInfo is not nil
+                tagID = tagInfo.tagID
+            end
             
             -- Check if the quest fits the criteria to be tracked. Checks both the player's preference for tracking and whether the criteria is met.
             local isDaily = KamberQuestsDB.daily and (info.frequency == Enum.QuestFrequency.Daily)
 			local isWeekly = KamberQuestsDB.weekly and (info.frequency == Enum.QuestFrequency.Weekly)
-            local isComplete = KamberQuestsDB.completed and (C_QuestLog.IsComplete(questID) or IsQuestObjectivesComplete(questID)) --(C_QuestLog.IsComplete(questID) or C_QuestLog.IsQuestFlaggedCompleted(questID) or IsQuestObjectivesComplete(questID))
-			local isInZone = KamberQuestsDB.zone and (questZone and questZone == currentMapID)
+            local isComplete = KamberQuestsDB.completed and (C_QuestLog.IsComplete(questID) or IsQuestObjectivesComplete(questID))
+			local isInZone = KamberQuestsDB.zone and IsQuestInCurrentZone(questID)
             local isPvP = tagID and KamberQuestsDB.pvp and (tagID == Enum.QuestTag.Pvp)
             local isRaid = tagID and KamberQuestsDB.raid and (tagID == Enum.QuestTag.Raid)
             local isDungeon = tagID and KamberQuestsDB.dungeon and (tagID == Enum.QuestTag.Dungeon)
@@ -119,13 +129,13 @@ local function SlashCmdHandler(msg)
         KamberQuestsDB.completed = not KamberQuestsDB.completed
         print(outputPrefix .. "Completed Tracking: " .. (KamberQuestsDB.completed and "ON" or "OFF"))
     elseif command == "pvp" then
-        KamberQuestsDB.completed = not KamberQuestsDB.pvp
+        KamberQuestsDB.pvp = not KamberQuestsDB.pvp
         print(outputPrefix .. "Completed Tracking: " .. (KamberQuestsDB.pvp and "ON" or "OFF"))
     elseif command == "raid" then
-        KamberQuestsDB.completed = not KamberQuestsDB.raid
+        KamberQuestsDB.raid = not KamberQuestsDB.raid
         print(outputPrefix .. "Completed Tracking: " .. (KamberQuestsDB.raid and "ON" or "OFF"))
     elseif command == "dungeon" then
-        KamberQuestsDB.completed = not KamberQuestsDB.dungeon
+        KamberQuestsDB.dungeon = not KamberQuestsDB.dungeon
         print(outputPrefix .. "Completed Tracking: " .. (KamberQuestsDB.dungeon and "ON" or "OFF"))
     elseif command == "reset" then
         print(outputPrefix .. "reseting all manually tracked quests.")
@@ -171,13 +181,13 @@ end
 
 -- Function to toggle all settings on or off
 local function SetAllTracking(onoff)
-    KamberQuestsDB.daily = onoff
-    KamberQuestsDB.weekly = onoff
-    KamberQuestsDB.zone = onoff
-    KamberQuestsDB.completed = onoff
-    KamberQuestsDB.pvp = onoff
-    KamberQuestsDB.raid = onoff
-    KamberQuestsDB.dungeon = onoff
+    -- Iterate over all keys in KamberQuestsDB
+    for key, _ in pairs(KamberQuestsDB) do
+        -- Check if the key is a tracking option (add any exceptions as needed)
+        if key ~= "version" then
+            KamberQuestsDB[key] = onoff
+        end
+    end
     
     UpdateQuestWatch()
     InitializeOptions()

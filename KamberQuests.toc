@@ -2,7 +2,7 @@
 ## Title: KamberQuests
 ## Author: Radbarn
 ## Notes: Automated quest tracking based on daily/weekly/zones/completed
-## Version: KQ1.2.0
+## Version: KQ1.2.5
 ## SavedVariables: KamberQuestsDB
 
 
