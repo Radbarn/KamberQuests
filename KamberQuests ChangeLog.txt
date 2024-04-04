@@ -1,6 +1,9 @@
+V1.2.6
+	Fixed PvP quest tracking, small typo error.
+
 V1.2.5
 	Fixed some typo errors that caused the pvp/raid/dungeon settings to not work
-	Changed how the current map/zone is checked; will now review parent and subzones to try and be more accurate with player location vs quest zone
+	Changed how the current map/zone is checked; now reverse checks if the quest is within the table returned of all quests within the player's current zone instead of checking the quest's "home zone"
 	Some optimizations to reduce resource requirements during updates
 
 V1.2.0

@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.2.5"
+local KQversion = "KamberQuests v1.2.6"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -69,7 +69,7 @@ local function UpdateQuestWatch()
 			local isWeekly = KamberQuestsDB.weekly and (info.frequency == Enum.QuestFrequency.Weekly)
             local isComplete = KamberQuestsDB.completed and (C_QuestLog.IsComplete(questID) or IsQuestObjectivesComplete(questID))
 			local isInZone = KamberQuestsDB.zone and IsQuestInCurrentZone(questID)
-            local isPvP = tagID and KamberQuestsDB.pvp and (tagID == Enum.QuestTag.Pvp)
+            local isPvP = tagID and KamberQuestsDB.pvp and (tagID == Enum.QuestTag.PvP)
             local isRaid = tagID and KamberQuestsDB.raid and (tagID == Enum.QuestTag.Raid)
             local isDungeon = tagID and KamberQuestsDB.dungeon and (tagID == Enum.QuestTag.Dungeon)
                         
