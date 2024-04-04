@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.2.6"
+local KQversion = "KamberQuests v1.2.7"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()

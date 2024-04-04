@@ -1,3 +1,7 @@
+V1.2.7
+	Added icon and project ID metadata
+	TOC bump
+	
 V1.2.6
 	Fixed PvP quest tracking, small typo error.
 
