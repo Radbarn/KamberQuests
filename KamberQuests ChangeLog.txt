@@ -1,3 +1,8 @@
+V1.1.0
+	Rewrote code to be simpler (this will cause your settings to be reset when migrating to this version)
+	Added tracking option for "all completed quests" that are ready to turn in
+	Added settings panel in the interface options with checkboxes for each setting
+	
 V1.0.3
 	Fixed LUA errors when there are no quests in the current zone
 	Fixed LUA errors when unable to check the current map

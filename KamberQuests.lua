@@ -1,217 +1,145 @@
---KamberQuests v1.0.3
+local KQversion = "KamberQuests v1.1.0"
 
--- Name of Addon
-local name = "KamberQuests"
+-- Initialize or load saved variables
+KamberQuestsDB = KamberQuestsDB or {daily = true, weekly = true, zone = true, completed = true}
 
--- Settings, retrieving from SavedVariables or using defaults
-KQ_setting_active = KQ_setting_active or true		-- if false the addon will not do anything (stops autotracking temporarily)
-KQ_setting_debug = KQ_setting_debug or false	-- if true the addon will print verbose chat messages to help debug
-KQ_setting_watchweekly = KQ_setting_watchweekly or true	-- if true the addon will force weekly quests to be always tracked
-KQ_setting_watchdaily = KQ_setting_watchdaily or true		-- if true the addon will force daily quests to be always tracked
-local KQ_started = false		-- using this to prevent spamming messages
+local function IsQuestObjectivesComplete(questID)
+    local objectives = C_QuestLog.GetQuestObjectives(questID)
+    if not objectives then return false end
 
--- Select events to be watched
-local function watchEvents()
-	local events = {
-		"ZONE_CHANGED",
-		"ZONE_CHANGED_NEW_AREA",
-		"QUEST_LOG_UPDATE",
-		"QUEST_FINISHED",
-		"QUEST_TURNED_IN",
-		"QUEST_GREETING",
-		"QUEST_ACCEPTED",
-		"QUEST_POI_UPDATE",
-		"QUEST_WATCH_UPDATE",
-		"ADDON_LOADED"
-		}
-	
-	return events
-end
-
-
--- Create frame to catch events
-local frame = CreateFrame("FRAME", "DUMMY_FRAME");
-
--- Register events with frame
-for _,event in ipairs(watchEvents()) do
-	frame:RegisterEvent(event)
-end
-
--- Our Actual Handler
-local function KQHandler()
-
-	if not KQ_setting_active then return false end
-
-	if UnitOnTaxi("player") then 
-		if KQ_setting_debug then print("KQ On Taxi") end
-		return false
-	end
-
-	--Get current location/map/zone
-	local map = C_Map.GetBestMapForUnit("player")
-	if map == nil then 
-		return false 
-	end
-	local mapname = C_Map.GetMapInfo(map).name
-	local maptype = C_Map.GetMapInfo(map).mapType
-	
-	-- If map is empty then quit cause wtf
-	if map == nil then
-		if KQ_setting_debug then print ("KQ map was nil") end
-		return
-	end
-
-	
-	-- Only retrack quests if maptype is Cosmic, Zone, Micro, or Orphan
-	if maptype == 0 or maptype == 3 or maptype == 5 or maptype == 6 then
-		if KQ_setting_debug then 
-			print("KQ maptype was valid to track quests: " .. maptype)
-			print("KQ current map is: " .. mapname .. " (" .. map .. ")")
-		end
-
-		-- Setup variables, we are ready to do stuff
-		local QuestsOnMap = C_QuestLog.GetQuestsOnMap(map)
-		local NumQuestLogEntries, numQuests = C_QuestLog.GetNumQuestLogEntries();
-		local tableQuestsWatch = {}
-		local tableQuestsOnMap = {}
-
-		-- get current active watchlist (tracked quests)
-		for i = 1, C_QuestLog.GetNumQuestWatches() do
-			tableQuestsWatch[i] = C_QuestLog.GetQuestIDForQuestWatchIndex(i)
-			if KQ_setting_debug then print(tableQuestsWatch[i] .. " Watching") end
-		end
-		
-		-- get current list of quests on this map
-		if QuestsOnMap ~= nil then
-			for index, value in ipairs(QuestsOnMap) do
-				-- what does type 13 represent?? we are not adding it to the list
-				if (value.type == 13) then
-					if KQ_setting_debug then print(value.questID .. " on the map and type 13") end
-				else
-					tableQuestsOnMap[value] = value.questID
-					if KQ_setting_debug then print(value.questID .. " on the map " .. value.type) end
-				end
-			end
-		end
-		
-		--Check each quest in the quest log
-		for i = 1, NumQuestLogEntries + 1 do
-			--if its not a blank index
-			if C_QuestLog.GetQuestIDForLogIndex(i) ~= nil and C_QuestLog.GetTitleForQuestID(C_QuestLog.GetQuestIDForLogIndex(i)) ~= nil then
-				-- if the questID is not 0
-				if C_QuestLog.GetQuestIDForLogIndex(i) ~= 0 then
-					-- series of ELSEIF checks to turn quests on and off in the tracker
-					if C_QuestLog.GetInfo(i).frequency == 1 and KQ_setting_watchdaily then
-						-- Daily quest and setting is true - ADD
-						C_QuestLog.AddQuestWatch(C_QuestLog.GetInfo(i).questID,0)
-						if KQ_setting_debug then print("Daily Quest Turning On: " .. " i: " .. i .. " QID: " .. C_QuestLog.GetQuestIDForLogIndex(i) .. " Freq: " .. C_QuestLog.GetInfo(i).frequency .." Title: " .. C_QuestLog.GetTitleForQuestID(C_QuestLog.GetQuestIDForLogIndex(i))) end
-					elseif C_QuestLog.GetInfo(i).frequency == 2 and KQ_setting_watchweekly then
-						-- Weekly quest and setting is true - ADD
-						C_QuestLog.AddQuestWatch(C_QuestLog.GetInfo(i).questID,0)
-						if KQ_setting_debug then print("Weekly Quest Turning On: " .. " i: " .. i .. " QID: " .. C_QuestLog.GetQuestIDForLogIndex(i) .. " Freq: " .. C_QuestLog.GetInfo(i).frequency .." Title: " .. C_QuestLog.GetTitleForQuestID(C_QuestLog.GetQuestIDForLogIndex(i))) end
-					elseif exists(tableQuestsOnMap,C_QuestLog.GetQuestIDForLogIndex(i)) then
-						-- Quest is on this map - ADD
-						C_QuestLog.AddQuestWatch(C_QuestLog.GetInfo(i).questID,0)
-						if KQ_setting_debug then print("Map Quest Turning On: " .. " i: " .. i .. " QID: " .. C_QuestLog.GetQuestIDForLogIndex(i) .. " Freq: " .. C_QuestLog.GetInfo(i).frequency .." Title: " .. C_QuestLog.GetTitleForQuestID(C_QuestLog.GetQuestIDForLogIndex(i))) end
-					elseif not exists(tableQuestsOnMap,C_QuestLog.GetQuestIDForLogIndex(i)) then
-						-- Quest is not on this map - REMOVE
-						C_QuestLog.RemoveQuestWatch(C_QuestLog.GetQuestIDForLogIndex(i))
-						if KQ_setting_debug then print("NonMap Quest Removing: " .. " i: " .. i .. " QID: " .. C_QuestLog.GetQuestIDForLogIndex(i) .. " Freq: " .. C_QuestLog.GetInfo(i).frequency .. " Title: " .. C_QuestLog.GetTitleForQuestID(C_QuestLog.GetQuestIDForLogIndex(i))) end
-					end
-				end
-			end
-		end
-	else
-		if KQ_setting_debug then
-			print("KQ maptype was invalid to track quests: " .. maptype)
-			print("KQ current map is: " .. mapname .. " (" .. map .. ")")
-		end
-		return false 
-	end
-		
-	
-end
-
--- Handle event from game
-local function eventHandler(self, event, arg1, ...)
-	if event == "ADDON_LOADED" and name == arg1 then
-		if not KQ_started then 
-			if KQ_setting_active then
-				print("|cFF4169E1Kamber Quest Tracking: |cFF00FF00On")
-			else
-				print("|cFF4169E1Kamber Quest Tracking: |cFFFF0000Off")
-			end
-			KQ_started = true
-		end
-	elseif event == "ADDON_LOADED" then
-		return false
-	else
-		KQHandler()
-	end
-end
-
--- Check value exists in table
-function exists(tab, value)
-    local v
-    for _, v in pairs(tab) do
-        if v == value then
-            return true
-        elseif type(v) == "table" then
-            return exists(v, value)
+    for _, objective in ipairs(objectives) do
+        if not objective.finished then
+            return false
         end
     end
-    return false
+    return true
 end
 
---tie the game events to the our game handler
-frame:SetScript("OnEvent", eventHandler);
+local function UpdateQuestWatch()
+    local numQuests = C_QuestLog.GetNumQuestLogEntries()
 
--- Define the function for the slash command
-SlashCmdList["KQ"] = function(msg)
-	local command, arg = strsplit(" ", msg, 2)
-	
-	if command == "debug" then
-		-- Toggle the value
-		KQ_setting_debug = not KQ_setting_debug
-		-- Print the new value to the chat window
-		print("|cFF4169E1KQ |cFFFFFFFFDebug Mode is now: ", KQ_setting_debug)
-	elseif command == "daily" then
-	    -- Toggle the value
-		KQ_setting_watchdaily = not KQ_setting_watchdaily
-		-- Print the new value to the chat window
-		print("|cFF4169E1KQ |cFFFFFFFFDaily Tracking is now: ", KQ_setting_watchdaily)
-	elseif command == "weekly" then
-		-- Toggle the value
-		KQ_setting_watchweekly = not KQ_setting_watchweekly
-		-- Print the new value to the chat window
-		print("|cFF4169E1KQ |cFFFFFFFFWeekly Tracking is now: ", KQ_setting_watchweekly)
-	elseif command == "active" then
-		-- Toggle the value
-		KQ_setting_active = not KQ_setting_active
-		-- Print the new value to the chat window
-		print("|cFF4169E1KQ |cFFFFFFFFAutotracking is now: ", KQ_setting_active)
-	elseif command == "on" then
-		-- Set the value
-		KQ_setting_active = true
-		-- Print the new value to the chat window
-		print("|cFF4169E1KQ |cFFFFFFFFAutotracking is now: ", KQ_setting_active)
-	elseif command == "off" then
-		-- Set the value
-		KQ_setting_active = false
-		-- Print the new value to the chat window
-		print("|cFF4169E1KQ |cFFFFFFFFAutotracking is now: ", KQ_setting_active)
-	elseif command == "status" then
-		print("|cFF4169E1KQ |cFFFFFFFFAutotracking is currently: ", KQ_setting_active)
-		print("|cFF4169E1KQ |cFFFFFFFFDaily Tracking is currently: ", KQ_setting_watchdaily)
-		print("|cFF4169E1KQ |cFFFFFFFFWeekly Tracking is currently: ", KQ_setting_watchweekly)
-	elseif command == nil or command == "" or command == " " then
-		print("|cFF4169E1KQ |cFFFFFFFFAutotracking is currently: ", KQ_setting_active)
-	else
-		print("|cFF4169E1KQ |cFFFF0000unrecognized command: " .. command)
+	--back out if the player has no quests in log
+	if numQuests == 0 or numQuests == nil then
+		return false
 	end
-	KQHandler()
+
+    local currentMapID = C_Map.GetBestMapForUnit("player")
+
+	
+	for i = 1, numQuests do
+        local info = C_QuestLog.GetInfo(i)
+        if not info.isHeader then
+            local questID = info.questID
+            local questZone = C_TaskQuest.GetQuestZoneID(questID)
+
+            -- Check if the quest fits the criteria to be tracked. Checks both the player's preference for tracking and whether the criteria is met.
+            local isDaily = KamberQuestsDB.daily and (info.frequency == Enum.QuestFrequency.Daily)
+			local isWeekly = KamberQuestsDB.weekly and (info.frequency == Enum.QuestFrequency.Weekly)
+            local isComplete = KamberQuestsDB.completed and (C_QuestLog.IsComplete(questID) or IsQuestObjectivesComplete(questID)) --(C_QuestLog.IsComplete(questID) or C_QuestLog.IsQuestFlaggedCompleted(questID) or IsQuestObjectivesComplete(questID))
+			local isInZone = KamberQuestsDB.zone and (questZone and questZone == currentMapID)
+
+            -- If any of the criteria and settings are met then track it, otherwise remove tracking
+            if isComplete or isDaily or isWeekly or isInZone then
+                C_QuestLog.AddQuestWatch(questID, Enum.QuestWatchType.Automatic)
+            else
+                C_QuestLog.RemoveQuestWatch(questID)
+            end
+        end
+    end
 end
 
--- Bind the slash command to the function
-SLASH_KQ1 = "/kq"
-SLASH_KQ2 = "/kamberquests"
+-- Slash command function
+local function SlashCmdHandler(msg)
+    local outputPrefix = "|cFF4169E1KQ|r "
+	local command = string.lower(msg)
+    if command == "status" then
+        -- Output current settings to chat
+        local settings = string.format(outputPrefix .. "Current Settings:\nDaily Tracking: %s\nWeekly Tracking: %s\nZone Tracking: %s\nCompleted Tracking: %s",
+                                       KamberQuestsDB.daily and "ON" or "OFF",
+                                       KamberQuestsDB.weekly and "ON" or "OFF",
+                                       KamberQuestsDB.zone and "ON" or "OFF",
+                                       KamberQuestsDB.completed and "ON" or "OFF")
+        print(settings)
+    elseif command == "daily" then
+        KamberQuestsDB.daily = not KamberQuestsDB.daily
+        print(outputPrefix .. "Daily Tracking: " .. (KamberQuestsDB.daily and "ON" or "OFF"))
+    elseif command == "weekly" then
+        KamberQuestsDB.weekly = not KamberQuestsDB.weekly
+        print(outputPrefix .. "Weekly Tracking: " .. (KamberQuestsDB.weekly and "ON" or "OFF"))
+    elseif command == "zone" then
+        KamberQuestsDB.zone = not KamberQuestsDB.zone
+        print(outputPrefix .. "Zone Tracking: " .. (KamberQuestsDB.zone and "ON" or "OFF"))
+    elseif command == "completed" then
+        KamberQuestsDB.completed = not KamberQuestsDB.completed
+        print(outputPrefix .. "Completed Tracking: " .. (KamberQuestsDB.completed and "ON" or "OFF"))
+    else
+		-- Open the Interface Options window to the KamberQuests panel
+        InterfaceOptionsFrame_OpenToCategory(KamberQuestsPanel)
+        InterfaceOptionsFrame_OpenToCategory(KamberQuestsPanel)  -- Call twice due to a Blizzard bug that may not open it correctly the first time
+    end
+    UpdateQuestWatch() -- Update quests based on new settings
+end
+
+-- Register slash command
+SLASH_KAMBERQUESTS1 = "/kq"
+SlashCmdList["KAMBERQUESTS"] = SlashCmdHandler
+
+-- Register event handling
+local frame = CreateFrame("Frame")
+frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+frame:RegisterEvent("ZONE_CHANGED")
+frame:RegisterEvent("QUEST_ACCEPTED")
+frame:RegisterEvent("QUEST_POI_UPDATE")
+frame:SetScript("OnEvent", UpdateQuestWatch)
+
+-- Create the main panel for the addon's options
+local panel = CreateFrame("Frame", "KamberQuestsPanel")
+panel.name = "KamberQuests"
+InterfaceOptions_AddCategory(panel)
+
+-- Function to create a checkbox
+local function CreateCheckbox(label, description, variable)
+    local checkbox = CreateFrame("CheckButton", "KamberQuests" .. variable .. "Checkbox", panel, "UICheckButtonTemplate")
+    checkbox.text = _G[checkbox:GetName() .. "Text"]
+    checkbox.text:SetText(label)
+    checkbox.tooltipText = description
+    checkbox:SetScript("OnClick", function(self)
+        KamberQuestsDB[variable] = self:GetChecked()
+        UpdateQuestWatch()
+    end)
+    return checkbox
+end
+
+-- Create a large title label for the header
+local titleLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+titleLabel:SetPoint("TOPLEFT", 16, -16)
+titleLabel:SetText(KQversion)
+
+-- Create a description text for the panel
+local descriptionText = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+descriptionText:SetPoint("TOPLEFT", titleLabel, "BOTTOMLEFT", 0, -8)
+descriptionText:SetJustifyH("LEFT")
+descriptionText:SetText("Select the types of quests you want to automatically track.\nAlternatively you can use /kq status, /kq config, /kq daily, /kq weekly, /kq zone, or /kq completed.")
+
+-- Create checkboxes for each setting
+local dailyCheckbox = CreateCheckbox("Track Daily Quests", "Toggle tracking of daily quests.", "daily")
+dailyCheckbox:SetPoint("TOPLEFT", descriptionText, "BOTTOMLEFT", 0, -8)
+
+local weeklyCheckbox = CreateCheckbox("Track Weekly Quests", "Toggle tracking of weekly quests.", "weekly")
+weeklyCheckbox:SetPoint("TOPLEFT", dailyCheckbox, "BOTTOMLEFT")
+
+local zoneCheckbox = CreateCheckbox("Track Current Zone Quests", "Toggle tracking of quests in the current zone.", "zone")
+zoneCheckbox:SetPoint("TOPLEFT", weeklyCheckbox, "BOTTOMLEFT")
+
+local completedCheckbox = CreateCheckbox("Track Completed Quests", "Toggle tracking of quests with all objectives completed.", "completed")
+completedCheckbox:SetPoint("TOPLEFT", zoneCheckbox, "BOTTOMLEFT")
+
+-- Initialize checkboxes with current settings
+local function InitializeOptions()
+    dailyCheckbox:SetChecked(KamberQuestsDB.daily)
+    weeklyCheckbox:SetChecked(KamberQuestsDB.weekly)
+    zoneCheckbox:SetChecked(KamberQuestsDB.zone)
+    completedCheckbox:SetChecked(KamberQuestsDB.completed)
+end
+panel:SetScript("OnShow", InitializeOptions)
