@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.2.7"
+local KQversion = "KamberQuests v1.2.8"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -142,8 +142,7 @@ local function SlashCmdHandler(msg)
         ResetQuestTracking()
     else
 		-- Open the Interface Options window to the KamberQuests panel
-        InterfaceOptionsFrame_OpenToCategory(KamberQuestsPanel)
-        InterfaceOptionsFrame_OpenToCategory(KamberQuestsPanel)  -- Call twice due to a Blizzard bug that may not open it correctly the first time
+         Settings.OpenToCategory(KamberQuestsPanel.category:GetID())
     end
     UpdateQuestWatch() -- Update quests based on new settings
 end
@@ -164,7 +163,20 @@ frame:SetScript("OnEvent", UpdateQuestWatch)
 -- Create the main panel for the addon's options
 local panel = CreateFrame("Frame", "KamberQuestsPanel")
 panel.name = "KamberQuests"
-InterfaceOptions_AddCategory(panel)
+--InterfaceOptions_AddCategory(panel)
+-- Function to add a new category
+local function addCategory(name, parent)
+    local category, layout = Settings.RegisterCanvasLayoutCategory(panel, name)
+    if parent then
+        Settings.SetCategoryParent(category, parent)
+    end
+    Settings.RegisterAddOnCategory(category)
+    return category, layout
+end
+
+-- Register your addon category
+local category, layout = addCategory("KamberQuests")
+panel.category = category
 
 -- Function to create a checkbox
 local function CreateCheckbox(label, description, variable)
