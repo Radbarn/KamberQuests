@@ -1,21 +1,7 @@
 # KamberQuests
  WoW Addon - KamberQuests
 
-Automatically adds and removes quests from being tracked by the blizzard quest tracker based on:
-
-  all quests in your current zone,
-
-  all daily quests regardless of zone,
-
-  all weekly quests regardless of zone,
-
-  all raid quests regardless of zone,
-
-  all dungeon quests regardless of zone,
-
-  all pvp quests regardless of zone,
-
-  all completed quests regardless of zone.
+Automatically adds and removes quests from being tracked by the blizzard quest tracker based on location, completed, quest tags, etc.
 
 all of these options can be turned on or off independently.
 

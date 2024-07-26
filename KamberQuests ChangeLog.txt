@@ -1,3 +1,15 @@
+V1.3.0
+	removed the check for manually checked quests as something has changed in the Blizzard Quest API and the auto-tracked quests are being marked as manual too
+	Added "track all" to force all trackable quests to track. Will likely hit a limit for tracked quests so still won't see them all?
+	Added profession quest tracking
+	Added "important" quest tracking - not sure which quests are being flagged as important by Blizzard though
+	Added delves and scenarios to the dungeon tracking option.  (checking for dungeons checks all three quest types)
+	Added some additional zone and completion checks to try and capture it all
+	Added a sortation call after tracking quests - should use Blizzard's sortation for proximity to player
+	Added a options panel refresh if its open and the player uses a slash command to change a setting
+
+	(hoping that the manual vs auto tracking flag bug in the API gets fixed so I can allow for manually tracked quests again.)
+
 V1.2.8
 	converted to Settings. instead of InterfaceOptions_ for the settings/options panel
 	TOC update to 11.0
