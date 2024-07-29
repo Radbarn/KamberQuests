@@ -1,3 +1,8 @@
+V1.3.5
+	Added logic to the current zone tracking to check the main quest group/header title. i.e. quests in the Valdrakken group will track when you're in Valdrakken
+	Added logic to ignore quests if the player has them "SuperTracked" with a waypoint set.  now we won't remove your quests that you have focused!
+	the Set All buttons no longer toggle the "ALL QUESTS" checkbox on and off
+
 V1.3.0
 	removed the check for manually checked quests as something has changed in the Blizzard Quest API and the auto-tracked quests are being marked as manual too
 	Added "track all" to force all trackable quests to track. Will likely hit a limit for tracked quests so still won't see them all?

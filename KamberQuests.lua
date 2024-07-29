@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.3.0"
+local KQversion = "KamberQuests v1.3.5"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -27,16 +27,53 @@ local function IsQuestObjectivesComplete(questID)
 end
 
 local function IsQuestInCurrentZone(questID)
+    --get current zone for player along with the current zone from the blizzard quest API
+    -- questHeader gets the zone for the quest header/group.  also check this against the name of the current map
     local currentMapID = C_Map.GetBestMapForUnit("player")
-    if not currentMapID then return false end
+    local questMapID = C_QuestLog.GetMapForQuestPOIs()
+    local questHeaderIndex = C_QuestLog.GetHeaderIndexForQuest(questID)
+    local currentMapName = nil
 
-    local questsOnMap = C_QuestLog.GetQuestsOnMap(currentMapID)
-    for _, questInfo in ipairs(questsOnMap) do
-        if questInfo.questID == questID then
+    -- attempt to get the name of the player's current zone
+    if currentMapID then
+        local MapInfo = C_Map.GetMapInfo(currentMapID)
+        if MapInfo then
+            currentMapName = MapInfo.name
+        end
+    end
+
+    -- if we have the player's zone name lets try to get the quest's header name
+    if questHeaderIndex and currentMapName then
+        local questHeaderZoneText  = C_QuestLog.GetTitleForLogIndex(questHeaderIndex)
+        -- if the quest header matches the current zone name then return true that we are in the right zone for this quest group
+        if questHeaderZoneText and questHeaderZoneText == currentMapName then
             return true
         end
     end
 
+
+    local questsOnMap
+
+    -- if the player's map was valid check it
+    if currentMapID then
+        questsOnMap = C_QuestLog.GetQuestsOnMap(currentMapID)
+        for _, questInfo in ipairs(questsOnMap) do
+            if questInfo.questID == questID then
+                return true
+            end
+        end
+    end
+    -- if the quest API map was valid AND DIFFERENT check it
+    if questMapID and questMapID ~= currentMapID then
+        questsOnMap = C_QuestLog.GetQuestsOnMap(questMapID)
+        for _, questInfo in ipairs(questsOnMap) do
+            if questInfo.questID == questID then
+                return true
+            end
+        end
+    end
+
+    -- return false if we didn't match this questID to quests in this zone
     return false
 end
 
@@ -69,7 +106,9 @@ local function UpdateQuestWatch()
                 --debug quest print out
                 --print("   tagged as " .. tagInfo.tagName .. "(" .. tagID .. ")")
             end
-
+            
+            -- if the player is "Super Tracking" the current questID then we want to ignore it altogether and not do any add/remove watch functions on it that might turn off the supertrack
+            if C_SuperTrack.GetSuperTrackedQuestID() ~= questID then
                 -- Check if the quest fits the criteria to be tracked. Checks both the player's preference for tracking and whether the criteria is met.
                 local isEverything = KamberQuestsDB.trackAll
                 local isDaily = KamberQuestsDB.daily and (info.frequency == Enum.QuestFrequency.Daily)
@@ -109,6 +148,7 @@ local function UpdateQuestWatch()
                     --end
                 end
                 C_QuestLog.SortQuestWatches() --re-sort watched quests by prox to player
+            end
         end
     end
 end
@@ -236,7 +276,8 @@ local function SetAllTracking(onoff)
     -- Iterate over all keys in KamberQuestsDB
     for key, _ in pairs(KamberQuestsDB) do
         -- Check if the key is a tracking option (add any exceptions as needed)
-        if key ~= "version" then
+        -- excluding the trackAll key as part of the "all on" option
+        if key ~= "version" and key ~= "trackAll" then
             KamberQuestsDB[key] = onoff
         end
     end
