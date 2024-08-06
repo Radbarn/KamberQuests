@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.3.6"
+local KQversion = "KamberQuests v1.4.0"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -11,8 +11,22 @@ if KamberQuestsDB == nil then
     SetAllDefaults()
 end
 
+--local variable definitions
+local InitializeOptions     -- placeholder for UI Options screen function
+local currentMapID = nil    -- cache variable for the player's current map/zone ID as given by the C_Map variable
+local currentMapName = nil  -- cache variable for the player's current map/zone name
+local questMapID = nil      -- cache variable for the player's current map/zone ID as given by the quest log
+local KQ_Timer = nil        -- Timer variable to avoid flooded quest log updates
+local C_Map = C_Map         -- localize global
+local C_QuestLog = C_QuestLog -- localize global
+local C_SuperTrack = C_SuperTrack -- localize global
 
-local InitializeOptions -- placeholder
+local function resetMapCache()
+    -- set the cache variables back to nil. call this when the map change events are triggered and BEFORE the UpdateQuestWatch function
+    currentMapID = nil    
+    currentMapName = nil  
+    questMapID = nil      
+end
 
 local function IsQuestObjectivesComplete(questID)
     local objectives = C_QuestLog.GetQuestObjectives(questID)
@@ -29,62 +43,71 @@ end
 local function IsQuestInCurrentZone(questID)
     --get current zone for player along with the current zone from the blizzard quest API
     -- questHeader gets the zone for the quest header/group.  also check this against the name of the current map
-    local currentMapID = C_Map.GetBestMapForUnit("player")
-    local questMapID = C_QuestLog.GetMapForQuestPOIs()
-    local questHeaderIndex = C_QuestLog.GetHeaderIndexForQuest(questID)
-    local currentMapName = nil
-
-    -- attempt to get the name of the player's current zone
-    if currentMapID then
-        local MapInfo = C_Map.GetMapInfo(currentMapID)
-        if MapInfo then
-            currentMapName = MapInfo.name
-        end
-    end
-
-    -- if we have the player's zone name lets try to get the quest's header name
-    if questHeaderIndex and currentMapName then
-        local questHeaderZoneText  = C_QuestLog.GetTitleForLogIndex(questHeaderIndex)
-        -- if the quest header matches the current zone name then return true that we are in the right zone for this quest group
-        if questHeaderZoneText and questHeaderZoneText == currentMapName then
-            return true
-        end
-    end
-
-
-    local questsOnMap
-
-    -- if the player's map was valid check it
-    if currentMapID then
-        questsOnMap = C_QuestLog.GetQuestsOnMap(currentMapID)
-        for _, questInfo in ipairs(questsOnMap) do
-            if questInfo.questID == questID then
-                return true
+    currentMapID = currentMapID or C_Map.GetBestMapForUnit("player")    -- grab cached currentMapID or retrieve from C_Map
+    questMapID = questMapID or C_QuestLog.GetMapForQuestPOIs()          -- grab cached questMapID or retrieve from C_QuestLog
+    
+    local function checkMapName(mapID)
+        -- attempt to get the name of the player's current zone
+        if mapID and not currentMapName then    -- if currentMapName is cached this part is skipped
+            local MapInfo = C_Map.GetMapInfo(mapID)
+            if MapInfo then
+                currentMapName = MapInfo.name
             end
         end
-    end
-    -- if the quest API map was valid AND DIFFERENT check it
-    if questMapID and questMapID ~= currentMapID then
-        questsOnMap = C_QuestLog.GetQuestsOnMap(questMapID)
-        for _, questInfo in ipairs(questsOnMap) do
-            if questInfo.questID == questID then
-                return true
+        -- if we have the player's zone name lets try to get the quest's header name
+        if currentMapName then
+            local questHeaderIndex = C_QuestLog.GetHeaderIndexForQuest(questID) -- grab the group header index that this quest belongs to in the quest log.
+            if questHeaderIndex then
+                local questHeaderZoneText  = C_QuestLog.GetTitleForLogIndex(questHeaderIndex)
+                -- if the quest header matches the current zone name then return true that we are in the right zone for this quest group
+                if questHeaderZoneText and questHeaderZoneText == currentMapName then
+                    return true
+                end
             end
         end
     end
 
-    -- return false if we didn't match this questID to quests in this zone
-    return false
+    -- execute the above function on both versions of the mapID and cancel further checks if the map name matches (returning true -- the quest is in the zone)
+    if checkMapName(currentMapID) then return true end
+    if checkMapName(questMapID) then return true end
+    
+    -- if the quest log header name did NOT match then we continue with a more detailed check:
+    local function checkQuestList(mapID)
+        local questsOnMap
+        if mapID then
+            questsOnMap = C_QuestLog.GetQuestsOnMap(mapID)
+            for _, questInfo in ipairs(questsOnMap) do
+                if questInfo.questID == questID then
+                    return true
+                end
+            end
+        end
+
+    end
+
+    -- return true if either checks worked otherwise return false
+    return checkQuestList(currentMapID) or checkQuestList(questMapID)
+    
 end
 
-local function UpdateQuestWatch()
-    local numQuests = C_QuestLog.GetNumQuestLogEntries()
-    
+local function UpdateQuestWatch(event, ...)
     --Notify the user than there has been an update!
     if KamberQuestsDB.version ~= KQversion then
         print("You have updated to the new |cFF4169E1" .. KQversion .. "|r")
         KamberQuestsDB.version = KQversion
     end
+
+    --if the event was a zone/map change reset the map cache variables
+    if event == "ZONE_CHANGED_NEW_AREA" or event == "ZONE_CHANGED" then
+        resetMapCache() -- reset cache variables
+    elseif event == "QUEST_ACCEPTED" then   -- OR if this is a new quest accepted event we can do some quick assumptions
+        local questID = ...         -- get questID from the event arguments
+        C_QuestLog.AddQuestWatch(questID, Enum.QuestWatchType.Automatic)    -- track this questID.  if it wasn't supposed to be it'll come off during the next event
+        return true --abort the remainder of the checks and calculations
+    end
+
+    local numQuests = C_QuestLog.GetNumQuestLogEntries()
+    
 
 	--back out if the player has no quests in log
 	if numQuests == 0 or numQuests == nil then
@@ -148,9 +171,27 @@ local function UpdateQuestWatch()
                     --end
                 end
                 C_QuestLog.SortQuestWatches() --re-sort watched quests by prox to player
+            elseif C_SuperTrack.GetSuperTrackedQuestID() == questID then
+                -- the quest is superTracked we need to force track it
+                C_QuestLog.AddQuestWatch(questID, Enum.QuestWatchType.Automatic)
             end
         end
     end
+end
+
+-- Function to use the delay timer and ensure all rapid/flooded quest log updates are finished before we start doing our checks. particularly useful on zone changes to prevent lag
+local function Timer_UpdateQuestWatch(event, questID)
+
+    -- clear the timer if it exists
+    if KQ_Timer then 
+        KQ_Timer:Cancel()
+    end
+
+    -- start a new timer
+    KQ_Timer = C_Timer.NewTimer(1, function()       -- 1 second delay
+        UpdateQuestWatch(event, questID)
+        KQ_Timer = nil  -- reset the timer after expiration/execution
+    end)
 end
 
 -- Function to reset quest tracking
@@ -238,7 +279,10 @@ frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 frame:RegisterEvent("ZONE_CHANGED")
 frame:RegisterEvent("QUEST_ACCEPTED")
 frame:RegisterEvent("QUEST_POI_UPDATE")
-frame:SetScript("OnEvent", UpdateQuestWatch)
+frame:RegisterEvent("SUPER_TRACKING_CHANGED")
+frame:SetScript("OnEvent", function(self, event, ...)
+    Timer_UpdateQuestWatch(event, questID)  -- Pass event and additional arguments
+end)
 
 -- Create the main panel for the addon's options
 local panel = CreateFrame("Frame", "KamberQuestsPanel")

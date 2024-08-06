@@ -1,3 +1,11 @@
+V1.4.0
+	Optimizations to reduce the amount of checks and calculations done
+		check likely sources first and cut off rest of the code if checks pass early
+		introduce a short 1 second delay to wait for any large burst of quest log updates to finish before running through all the checks
+		cache the current map unless a map change has happened - reducing having to constantly look up this value
+		if the event was a new quest being accepted we now track it without checking anything - it will untrack at next event if it doesn't meet criteria
+	Added check for SuperTrack changing to resolve issue/bug where untracking would leave the quest tracked
+
 V1.3.6
 	Added additional criteria to check for current zone quests
 	Added a check to see if the quest is part of a campaign as part of the "important quest" selection
