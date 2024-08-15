@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.4.0"
+local KQversion = "KamberQuests v1.4.1"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -102,7 +102,7 @@ local function UpdateQuestWatch(event, ...)
         resetMapCache() -- reset cache variables
     elseif event == "QUEST_ACCEPTED" then   -- OR if this is a new quest accepted event we can do some quick assumptions
         local questID = ...         -- get questID from the event arguments
-        C_QuestLog.AddQuestWatch(questID, Enum.QuestWatchType.Automatic)    -- track this questID.  if it wasn't supposed to be it'll come off during the next event
+        C_QuestLog.AddQuestWatch(questID) --, Enum.QuestWatchType.Automatic)    -- track this questID.  if it wasn't supposed to be it'll come off during the next event
         return true --abort the remainder of the checks and calculations
     end
 
@@ -146,7 +146,7 @@ local function UpdateQuestWatch(event, ...)
                             
                 -- If any of the criteria and settings are met then track it, otherwise remove tracking
                 if isEverything or isComplete or isDaily or isWeekly or isInZone or isPvP or isRaid or isProfessions or isDungeon or isImportant then
-                    C_QuestLog.AddQuestWatch(questID, Enum.QuestWatchType.Automatic)
+                    C_QuestLog.AddQuestWatch(questID) --, Enum.QuestWatchType.Automatic)
                     --[[ --debug printout
                     local debugstring = "      "
                     if isComplete then debugstring = debugstring .. " isComplete" end
@@ -173,7 +173,7 @@ local function UpdateQuestWatch(event, ...)
                 C_QuestLog.SortQuestWatches() --re-sort watched quests by prox to player
             elseif C_SuperTrack.GetSuperTrackedQuestID() == questID then
                 -- the quest is superTracked we need to force track it
-                C_QuestLog.AddQuestWatch(questID, Enum.QuestWatchType.Automatic)
+                C_QuestLog.AddQuestWatch(questID) --, Enum.QuestWatchType.Automatic)
             end
         end
     end

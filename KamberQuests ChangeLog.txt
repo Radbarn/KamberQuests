@@ -1,3 +1,6 @@
+V1.4.1
+	Revised method for adding a quest to the watcher due to recent Blizzard API changes
+
 V1.4.0
 	Optimizations to reduce the amount of checks and calculations done
 		check likely sources first and cut off rest of the code if checks pass early
