@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.4.1"
+local KQversion = "KamberQuests v1.4.2"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -63,6 +63,10 @@ local function IsQuestInCurrentZone(questID)
                 if questHeaderZoneText and questHeaderZoneText == currentMapName then
                     return true
                 end
+                -- if we are tracking important quests and the zone header is "SPECIAL" then consider this quest in the current zone.
+                if questHeaderZoneText and questHeaderZoneText == "Special" and KamberQuestsDB.important then
+                    return true
+                end
             end
         end
     end
@@ -91,6 +95,8 @@ local function IsQuestInCurrentZone(questID)
 end
 
 local function UpdateQuestWatch(event, ...)
+    local success, errormessage -- error handler variables for use in this function
+    
     --Notify the user than there has been an update!
     if KamberQuestsDB.version ~= KQversion then
         print("You have updated to the new |cFF4169E1" .. KQversion .. "|r")
@@ -102,7 +108,11 @@ local function UpdateQuestWatch(event, ...)
         resetMapCache() -- reset cache variables
     elseif event == "QUEST_ACCEPTED" then   -- OR if this is a new quest accepted event we can do some quick assumptions
         local questID = ...         -- get questID from the event arguments
-        C_QuestLog.AddQuestWatch(questID) --, Enum.QuestWatchType.Automatic)    -- track this questID.  if it wasn't supposed to be it'll come off during the next event
+        success, errormessage = pcall(C_QuestLog.AddQuestWatch, questID, Enum.QuestWatchType.Automatic)
+        if not success then
+            -- Handle the error gracefully
+            print("KamberQuests: Error tracking quest:", errormessage)  -- Or log to a file if you prefer
+        end    -- track this questID.  if it wasn't supposed to be it'll come off during the next event
         return true --abort the remainder of the checks and calculations
     end
 
@@ -146,7 +156,11 @@ local function UpdateQuestWatch(event, ...)
                             
                 -- If any of the criteria and settings are met then track it, otherwise remove tracking
                 if isEverything or isComplete or isDaily or isWeekly or isInZone or isPvP or isRaid or isProfessions or isDungeon or isImportant then
-                    C_QuestLog.AddQuestWatch(questID) --, Enum.QuestWatchType.Automatic)
+                    success, errormessage = pcall(C_QuestLog.AddQuestWatch, questID, Enum.QuestWatchType.Automatic)
+                    if not success then
+                        -- Handle the error gracefully
+                        print("KamberQuests: Error tracking quest:", errormessage)  -- Or log to a file if you prefer
+                    end
                     --[[ --debug printout
                     local debugstring = "      "
                     if isComplete then debugstring = debugstring .. " isComplete" end
@@ -173,7 +187,11 @@ local function UpdateQuestWatch(event, ...)
                 C_QuestLog.SortQuestWatches() --re-sort watched quests by prox to player
             elseif C_SuperTrack.GetSuperTrackedQuestID() == questID then
                 -- the quest is superTracked we need to force track it
-                C_QuestLog.AddQuestWatch(questID) --, Enum.QuestWatchType.Automatic)
+                success, errormessage = pcall(C_QuestLog.AddQuestWatch, questID, Enum.QuestWatchType.Automatic)
+                if not success then
+                    -- Handle the error gracefully
+                    print("KamberQuests: Error tracking quest:", errormessage)  -- Or log to a file if you prefer
+                end
             end
         end
     end

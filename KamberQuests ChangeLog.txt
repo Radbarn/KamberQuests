@@ -1,3 +1,7 @@
+V1.4.2
+	Additional edits on adding a quest to the watcher to prevent LUA errors
+	Added: if you track "in current zone" and "important" together it will track anything in the "special" category of the quest log.
+
 V1.4.1
 	Revised method for adding a quest to the watcher due to recent Blizzard API changes
 
