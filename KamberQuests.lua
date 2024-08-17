@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.4.2"
+local KQversion = "KamberQuests v1.4.3"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -111,7 +111,7 @@ local function UpdateQuestWatch(event, ...)
         success, errormessage = pcall(C_QuestLog.AddQuestWatch, questID, Enum.QuestWatchType.Automatic)
         if not success then
             -- Handle the error gracefully
-            print("KamberQuests: Error tracking quest:", errormessage)  -- Or log to a file if you prefer
+            --print("KamberQuests: Error tracking quest:", errormessage)  -- Or log to a file if you prefer
         end    -- track this questID.  if it wasn't supposed to be it'll come off during the next event
         return true --abort the remainder of the checks and calculations
     end
@@ -159,7 +159,7 @@ local function UpdateQuestWatch(event, ...)
                     success, errormessage = pcall(C_QuestLog.AddQuestWatch, questID, Enum.QuestWatchType.Automatic)
                     if not success then
                         -- Handle the error gracefully
-                        print("KamberQuests: Error tracking quest:", errormessage)  -- Or log to a file if you prefer
+                        --print("KamberQuests: Error tracking quest:", errormessage)  -- Or log to a file if you prefer
                     end
                     --[[ --debug printout
                     local debugstring = "      "
@@ -190,7 +190,7 @@ local function UpdateQuestWatch(event, ...)
                 success, errormessage = pcall(C_QuestLog.AddQuestWatch, questID, Enum.QuestWatchType.Automatic)
                 if not success then
                     -- Handle the error gracefully
-                    print("KamberQuests: Error tracking quest:", errormessage)  -- Or log to a file if you prefer
+                    --print("KamberQuests: Error tracking quest:", errormessage)  -- Or log to a file if you prefer
                 end
             end
         end
