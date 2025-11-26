@@ -1,0 +1,26 @@
+name: Package and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create addon zip
+        run: |
+          mkdir -p release
+          zip -r release/KamberAlts-${{ github.ref_name }}.zip KamberAlts/ -x "*.git*" "*/.vscode/*"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*.zip
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
