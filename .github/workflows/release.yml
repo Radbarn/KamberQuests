@@ -14,7 +14,7 @@ jobs:
       - name: Create addon zip
         run: |
           mkdir -p release
-          zip -r release/KamberAlts-${{ github.ref_name }}.zip KamberAlts/ -x "*.git*" "*/.vscode/*"
+          zip -r release/KamberQuests-${{ github.ref_name }}.zip KamberQuests/ -x "*.git*" "*/.vscode/*"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
