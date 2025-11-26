@@ -1,3 +1,6 @@
+V1.4.4
+	TOC update to 11.2.5
+	
 V1.4.3
 	Additional edits on adding a quest to the watcher to prevent LUA errors
 	Added: if you track "in current zone" and "important" together it will track anything in the "special" category of the quest log.
