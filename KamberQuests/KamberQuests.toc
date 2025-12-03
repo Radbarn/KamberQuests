@@ -1,8 +1,8 @@
-## Interface: 110205
+## Interface: 110207
 ## Title: KamberQuests
 ## Author: Radbarn
 ## Notes: Automated quest tracking based on daily/weekly/zones/completed
-## Version: KQ1.4.4
+## Version: KQ1.4.5
 ## SavedVariables: KamberQuestsDB
 ## X-Curse-Project-ID: 964781
 ## IconTexture: Interface\AddOns\KamberQuests\KamberQuests_Icon.tga

@@ -1,3 +1,8 @@
+V1.4.5
+	TOC update to 11.2.7
+	Small efficiency gain in where the re-sort of the quest tracker is triggered
+	Bug fix so that adding quests from the QUEST_ACCEPTED event works as intended
+	
 V1.4.4
 	TOC update to 11.2.5
 	

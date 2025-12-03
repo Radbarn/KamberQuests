@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.4.4"
+local KQversion = "KamberQuests v1.4.5"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -184,7 +184,6 @@ local function UpdateQuestWatch(event, ...)
                         C_QuestLog.RemoveQuestWatch(questID)
                     --end
                 end
-                C_QuestLog.SortQuestWatches() --re-sort watched quests by prox to player
             elseif C_SuperTrack.GetSuperTrackedQuestID() == questID then
                 -- the quest is superTracked we need to force track it
                 success, errormessage = pcall(C_QuestLog.AddQuestWatch, questID, Enum.QuestWatchType.Automatic)
@@ -195,10 +194,11 @@ local function UpdateQuestWatch(event, ...)
             end
         end
     end
+    C_QuestLog.SortQuestWatches() --re-sort watched quests by prox to player
 end
 
 -- Function to use the delay timer and ensure all rapid/flooded quest log updates are finished before we start doing our checks. particularly useful on zone changes to prevent lag
-local function Timer_UpdateQuestWatch(event, questID)
+local function Timer_UpdateQuestWatch(event, ...)
 
     -- clear the timer if it exists
     if KQ_Timer then 
@@ -207,7 +207,7 @@ local function Timer_UpdateQuestWatch(event, questID)
 
     -- start a new timer
     KQ_Timer = C_Timer.NewTimer(1, function()       -- 1 second delay
-        UpdateQuestWatch(event, questID)
+        UpdateQuestWatch(event, ...)
         KQ_Timer = nil  -- reset the timer after expiration/execution
     end)
 end
@@ -299,7 +299,7 @@ frame:RegisterEvent("QUEST_ACCEPTED")
 frame:RegisterEvent("QUEST_POI_UPDATE")
 frame:RegisterEvent("SUPER_TRACKING_CHANGED")
 frame:SetScript("OnEvent", function(self, event, ...)
-    Timer_UpdateQuestWatch(event, questID)  -- Pass event and additional arguments
+    Timer_UpdateQuestWatch(event, ...)  -- Pass event and additional arguments
 end)
 
 -- Create the main panel for the addon's options
