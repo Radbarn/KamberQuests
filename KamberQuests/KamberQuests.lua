@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.4.5"
+local KQversion = "KamberQuests v1.4.6"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -207,7 +207,7 @@ local function Timer_UpdateQuestWatch(event, ...)
 
     -- start a new timer
     KQ_Timer = C_Timer.NewTimer(1, function()       -- 1 second delay
-        UpdateQuestWatch(event, ...)
+        UpdateQuestWatch(event, questID)
         KQ_Timer = nil  -- reset the timer after expiration/execution
     end)
 end
