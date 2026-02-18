@@ -1,5 +1,6 @@
-# Claude files
 claude.md
 .clinerules
 .cursorrules
 .claude/
+.vscode/
+.gitignore
