@@ -1,3 +1,7 @@
+V1.4.8
+	TOC update to 12.0.1
+	removed the IsLegendaryQuest check as it seems to have been removed from the API
+
 V1.4.7
 	TOC update to 12.0.0
 

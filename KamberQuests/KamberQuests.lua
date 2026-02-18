@@ -1,4 +1,4 @@
-local KQversion = "KamberQuests v1.4.7"
+local KQversion = "KamberQuests v1.4.8"
 
 -- Function to return settings to defaults
 local function SetAllDefaults()
@@ -152,8 +152,9 @@ local function UpdateQuestWatch(event, ...)
                 local isRaid = tagID and KamberQuestsDB.raid and (tagID == Enum.QuestTag.Raid or tagID == Enum.QuestTag.Raid10 or tagID == Enum.QuestTag.Raid25)
                 local isDungeon = tagID and KamberQuestsDB.dungeon and (tagID == Enum.QuestTag.Dungeon or tagID == Enum.QuestTag.Delve or tagID == Enum.QuestTag.Scenario)
                 local isProfessions = tagID and KamberQuestsDB.professions and (tagID == 267) --hard coding 267 for professions because the Enum doesnt seem to work
-                local isImportant = KamberQuestsDB.important and (info.isStory or C_QuestLog.IsImportantQuest(questID) or C_QuestLog.IsLegendaryQuest(questID) or info.campaignID)
-                            
+                local isImportant = KamberQuestsDB.important and (info.isStory or C_QuestLog.IsImportantQuest(questID) or info.campaignID)
+                --had to remove this because it doesnt seem to work in 12.0.1 ___ or C_QuestLog.IsLegendaryQuest(questID)
+                
                 -- If any of the criteria and settings are met then track it, otherwise remove tracking
                 if isEverything or isComplete or isDaily or isWeekly or isInZone or isPvP or isRaid or isProfessions or isDungeon or isImportant then
                     success, errormessage = pcall(C_QuestLog.AddQuestWatch, questID, Enum.QuestWatchType.Automatic)
